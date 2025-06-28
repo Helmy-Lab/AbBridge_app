@@ -87,7 +87,7 @@ ui <- dashboardPage(
       tabsetPanel(
         tabPanel("Home",
                  h3("Instructions"),
-                 p("Use the sidebar to upload sequences and click 'Align'. Then navigate to view results.")
+                 p("Use the sidebar to upload sequences and click 'Compare Structures'. Then navigate to view results.")
         ),
         tabPanel("Alignment Results",
                  titlePanel("Alignment Table and Plot"),
