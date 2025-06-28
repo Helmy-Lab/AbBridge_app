@@ -210,24 +210,52 @@ server <- function(input, output, session) {
       
       # 3D protein structure visualization ---------------------------------------
       output$ngl_ui <-  renderUI({
-        req(input$uniprot, input$uniprot_ids)
+        req(input$uniprot, input$uniprot_ids, rmsd_scaled, aln_data())
         
-        all_ids <- unique(c(input$uniprot, unlist(strsplit(input$uniprot_ids, ","))))
+        # Reference protein visualization
+        reference = input$uniprot
         
-        tagList(
-          lapply(all_ids, function(id) {
+        # check for the PDB file in the directory path
+        file_path <- file.path( paste0(reference, "_AF.pdb"))
+        
+        if (!file.exists(file_path)) 
+        { return(NULL)  }
+        taxas <- GetNamesTaxa(reference)
+        refrence_box <- box(
+          title = paste( "Reference protein :", reference,"-", taxas$Organism,",",taxas$Gene.Names), width = 12, solidHeader = TRUE, status = "success",
+          NGLVieweROutput(outputId = paste0("ngl_plot_", reference), height = "400px")
+        )
+        
+        
+        # target proteins ranked based on table
+        tabledata <- aln_data()
+        # Use the Rank in the table to sort target proteins
+        ranked_ids <- tabledata %>% arrange(Rank) %>% pull(Accession_ID_Species_name)
+       
+          target_boxes <- lapply(ranked_ids,function(acession_id_name) {
+            
+            # split Accession ID name to get Uniprot ID only
+            id <- strsplit(acession_id_name,"_")[[1]][1]
+            
+            rank <- tabledata %>% 
+              filter(Accession_ID_Species_name == acession_id_name) %>% 
+              pull(Rank)
+            
+            
+            # check for the pdb file in the directory path
             file_path <- file.path( paste0(id, "_AF.pdb"))
             
-            if (!file.exists(file_path)) {
-              return(NULL)
-            }
+            if (!file.exists(file_path)) 
+              { return(NULL)  }
             taxas <- GetNamesTaxa(id)
             box(
-              title = paste( id,"-", taxas$Organism,":",taxas$Protein.names), width = 12, solidHeader = TRUE, status = "success",
+              title = paste("Target Protein Rank ", rank,': ',id,"-", taxas$Organism,",",taxas$Gene.Names,".   Scaled RMSD: ",rmsd_scaled[paste0(id, "_", taxas$Organism)]),
+              width = 12, solidHeader = TRUE, status = "success",
               NGLVieweROutput(outputId = paste0("ngl_plot_", id), height = "400px")
             )
           })
-        )
+          # this is important to list all boxes in tab
+          tagList(refrence_box,target_boxes)
       })
       
       observe({
@@ -256,7 +284,6 @@ server <- function(input, output, session) {
           })
         }
       })
-      
       
       
       
